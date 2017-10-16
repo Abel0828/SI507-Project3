@@ -7,14 +7,32 @@ import requests
 ## Of course, it could be structured in an easier/neater way, and if a student decides to commit to that, that is OK.
 
 ## NOTE OF ADVICE:
-## When you go to make your GitHub milestones, think pretty seriously about all the different parts and their requirements, and what you need to understand. Make sure you've asked your questions about Part 2 as much as you need to before Fall Break!
+## When you go to make your GitHub milestones, think pretty seriously about all the different parts and their requirements,
+## and what you need to understand. Make sure you've asked your questions about Part 2 as much as you need to before Fall Break!
 
 
 ######### PART 0 #########
 
 # Write your code for Part 0 here.
-
-
+def print_alt_text(url):
+    try:
+        part0_html=open('gallery.html','r',encoding='utf-8')
+        text=part0_html
+    except:
+        text=requests.get(url).text
+        part0_html=open('gallery.html','w+',encoding='utf-8')
+        part0_html.write(text)
+    soup=BeautifulSoup(text,'html.parser')
+    part0_html.close()     
+    for img in soup.find('body').find_all('img'):
+        if 'alt' in img.attrs:
+            print(img['alt'])
+        else:
+            print('No alternative text provided!')
+        print()
+   
+URL_gallery="http://newmantaylor.com/gallery.html"
+print_alt_text(URL_gallery)
 ######### PART 1 #########
 
 # Get the main page data...
@@ -25,11 +43,8 @@ import requests
 # and the html text saved in it is stored in a variable 
 # that the rest of the program can access.
 
-# We've provided comments to guide you through the complex try/except, but if you prefer to build up the code to do this scraping and caching yourself, that is OK.
-
-
-
-
+# We've provided comments to guide you through the complex try/except,
+# but if you prefer to build up the code to do this scraping and caching yourself, that is OK.
 
 
 # Get individual states' data...
@@ -50,16 +65,21 @@ import requests
 
 # Get a list of all the li (list elements) from the unordered list, using the BeautifulSoup find_all method
 
-# Use a list comprehension or accumulation to get all of the 'href' attributes of the 'a' tag objects in each li, instead of the full li objects
+# Use a list comprehension or accumulation to get all of the 'href' attributes of the 'a' tag objects in each li,
+# instead of the full li objects
 
-# Filter the list of relative URLs you just got to include only the 3 you want: AR's, CA's, MI's, using the accumulator pattern & conditional statements
+# Filter the list of relative URLs you just got to include only the 3 you want: AR's, CA's, MI's,
+# using the accumulator pattern & conditional statements
 
 
 # Create 3 URLs to access data from by appending those 3 href values to the main part of the NPS url. Save each URL in a variable.
 
 
 ## To figure out what URLs you want to get data from (as if you weren't told initially)...
-# As seen if you debug on the actual site. e.g. Maine parks URL is "http://www.nps.gov/state/me/index.htm", Michigan's is "http://www.nps.gov/state/mi/index.htm" -- so if you compare that to the values in those href attributes you just got... how can you build the full URLs?
+# As seen if you debug on the actual site.
+# e.g. Maine parks URL is "http://www.nps.gov/state/me/index.htm",
+# Michigan's is "http://www.nps.gov/state/mi/index.htm"
+# -- so if you compare that to the values in those href attributes you just got... how can you build the full URLs?
 
 
 # Finally, get the HTML data from each of these URLs, and save it in the variables you used in the try clause
@@ -68,12 +88,36 @@ import requests
 
 # And then, write each set of data to a file so this won't have to run again.
 
+def cache_pages_data(url_base):
+    try:
+        h=open('nps_gov_data.html','r',encoding='utf-8')
+        text=h.read()
+    except:
+        text=requests.get(url_base).text
+        h=open('nps_gov_data.html','w+',encoding='utf-8')
+        h.write(text)
+    soup=BeautifulSoup(text,'html.parser')
+    h.close()
+    li_list=soup.find('ul',class_='dropdown-menu SearchBar-keywordSearch').find_all('li',recursive=False)
+    base='/'.join(url_base.split('/')[0:-1:1])
+    print(base)
+    full_href_list=[base+li.a['href'] for li in li_list if li.a.string == 'Arkansas' or \
+                    li.a.string =='California' or li.a.string =='Michigan']
 
+    name_dict={'ar':'arkansas_data.html','ca':'california_data.html','mi':'michigan_data.html'}
+    for url_state in full_href_list:
+        cache_name=name_dict.get(url_state.split('/')[-2])
+        try:
+            s=open(cache_name,'r',encoding='utf-8')
+        except:
+            print(url_state)
+            text0=requests.get(url_state).text
+            s=open(cache_name,'w+',encoding='utf-8')
+            s.write(text0)
+        s.close()
 
-
-
-
-
+URL_NPS='https://www.nps.gov/index.htm'
+cache_pages_data(URL_NPS)
 ######### PART 2 #########
 
 ## Before truly embarking on Part 2, we recommend you do a few things:
