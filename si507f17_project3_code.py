@@ -125,33 +125,73 @@ cache_pages_data(URL_NPS)
 # - Create BeautifulSoup objects out of all the data you have access to in variables from Part 1
 # - Do some investigation on those BeautifulSoup objects. What data do you have about each state? How is it organized in HTML?
 
-# HINT: remember the method .prettify() on a BeautifulSoup object -- might be useful for your investigation! So, of course, might be .find or .find_all, etc...
+# HINT: remember the method .prettify() on a BeautifulSoup object -- might be useful for your investigation!
+# So, of course, might be .find or .find_all, etc...
 
-# HINT: Remember that the data you saved is data that includes ALL of the parks/sites/etc in a certain state, but you want the class to represent just ONE park/site/monument/lakeshore.
+# HINT: Remember that the data you saved is data that includes ALL of the parks/sites/etc in a certain state,
+# but you want the class to represent just ONE park/site/monument/lakeshore.
 
-# We have provided, in sample_html_of_park.html an HTML file that represents the HTML about 1 park. However, your code should rely upon HTML data about Michigan, Arkansas, and Califoria you saved and accessed in Part 1.
+# We have provided, in sample_html_of_park.html an HTML file that represents the HTML about 1 park.
+# However, your code should rely upon HTML data about Michigan, Arkansas, and Califoria you saved and accessed in Part 1.
 
-# However, to begin your investigation and begin to plan your class definition, you may want to open this file and create a BeautifulSoup instance of it to do investigation on.
+# However, to begin your investigation and begin to plan your class definition,
+# you may want to open this file and create a BeautifulSoup instance of it to do investigation on.
 
-# Remember that there are things you'll have to be careful about listed in the instructions -- e.g. if no type of park/site/monument is listed in input, one of your instance variables should have a None value...
-
-
-
-
+# Remember that there are things you'll have to be careful about listed in the instructions
+# -- e.g. if no type of park/site/monument is listed in input, one of your instance variables should have a None value...
 
 ## Define your class NationalSite here:
+class NationalSite(object):
+    def __init__(self,soup):
+        self.location=soup.find('h4').string
+        self.name=soup.find('h3').string
+        type_tag=soup.find('h3').find_previous_sibling()
+        assert(type_tag.name=='h2')
+        if type_tag.string != '':
+            self.type=type_tag.string
+        else:
+            self.type=None
+        self.description=soup.find('p').string.strip()
 
+        self.basic_info_url=soup.find('div',
+                                      class_='col-md-12 col-sm-12 noPadding stateListLinks')\
+                                      .ul.find_all('li',recursive=False)[1].a['href']
 
+        print(self.basic_info_url)
 
+    def __str__(self):
+        return '{} | {}'.format(self.name,self.location)
+        
+    def get_mailing_address(self):
+        try:
+            h=open('{} basic info.html'.format(self.name),'r',encoding='utf-8')
+            text.h.read()
+        except:
+            text=requests.get(self.basic_info_url).text
+            h=open('{} basic info.html'.format(self.name),'w+',encoding='utf-8')
+            h.write(text)
+        soup=BeautifulSoup(text,'html.parser')
+        h.close()
+        span_list=soup.find('div',class_='physical-address').find('div',itemprop='address').find_all('span')
+        splitted_addresses=[span.string for span in span_list if 'itemprop' not in span.attrs or span['itemprop']!='streetAddress']
+        return '/'.join(splitted_addresses)
 
-
-## Recommendation: to test the class, at various points, uncomment the following code and invoke some of the methods / check out the instance variables of the test instance saved in the variable sample_inst:
-
-# f = open("sample_html_of_park.html",'r')
-# soup_park_inst = BeautifulSoup(f.read(), 'html.parser') # an example of 1 BeautifulSoup instance to pass into your class
-# sample_inst = NationalSite(soup_park_inst)
-# f.close()
-
+    def __contains__(self,key):
+        return key in self.name
+## Recommendation: to test the class, at various points, uncomment the following code and
+# invoke some of the methods / check out the instance variables of the test instance saved in the variable sample_inst:
+"""
+f = open("alkatraze island.html",'r',encoding='utf-8')
+soup_park_inst = BeautifulSoup(f.read(), 'html.parser') # an example of 1 BeautifulSoup instance to pass into your class
+inst = NationalSite(soup_park_inst)
+print(inst.location)
+print(inst.name)
+print(inst.type)
+print(inst.description)
+print(inst)
+print(inst.get_mailing_address())
+f.close()
+"""
 
 ######### PART 3 #########
 
@@ -176,7 +216,8 @@ cache_pages_data(URL_NPS)
 
 ## Remember the hints / things you learned from Project 2 about writing CSV files from lists of objects!
 
-## Note that running this step for ALL your data make take a minute or few to run -- so it's a good idea to test any methods/functions you write with just a little bit of data, so running the program will take less time!
+## Note that running this step for ALL your data make take a minute or few to run
+# -- so it's a good idea to test any methods/functions you write with just a little bit of data, so running the program will take less time!
 
 ## Also remember that IF you have None values that may occur, you might run into some problems and have to debug for where you need to put in some None value / error handling!
 
