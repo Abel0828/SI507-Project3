@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import unittest
 import requests
+import csv
 
 #########
 ## Instr note: the outline comments will stay as suggestions, otherwise it's too difficult.
@@ -100,7 +101,6 @@ def cache_pages_data(url_base):
     h.close()
     li_list=soup.find('ul',class_='dropdown-menu SearchBar-keywordSearch').find_all('li',recursive=False)
     base='/'.join(url_base.split('/')[0:-1:1])
-    print(base)
     full_href_list=[base+li.a['href'] for li in li_list if li.a.string == 'Arkansas' or \
                     li.a.string =='California' or li.a.string =='Michigan']
 
@@ -110,7 +110,6 @@ def cache_pages_data(url_base):
         try:
             s=open(cache_name,'r',encoding='utf-8')
         except:
-            print(url_state)
             text0=requests.get(url_state).text
             s=open(cache_name,'w+',encoding='utf-8')
             s.write(text0)
@@ -148,7 +147,7 @@ class NationalSite(object):
         type_tag=soup.find('h3').find_previous_sibling()
         assert(type_tag.name=='h2')
         if type_tag.string != '':
-            self.type=type_tag.string
+            self.type=str(type_tag.string)
         else:
             self.type=None
         self.description=soup.find('p').string.strip()
@@ -157,24 +156,26 @@ class NationalSite(object):
                                       class_='col-md-12 col-sm-12 noPadding stateListLinks')\
                                       .ul.find_all('li',recursive=False)[1].a['href']
 
-        print(self.basic_info_url)
-
     def __str__(self):
         return '{} | {}'.format(self.name,self.location)
         
     def get_mailing_address(self):
         try:
             h=open('{} basic info.html'.format(self.name),'r',encoding='utf-8')
-            text.h.read()
+            text=h.read()
         except:
             text=requests.get(self.basic_info_url).text
             h=open('{} basic info.html'.format(self.name),'w+',encoding='utf-8')
             h.write(text)
         soup=BeautifulSoup(text,'html.parser')
         h.close()
-        span_list=soup.find('div',class_='physical-address').find('div',itemprop='address').find_all('span')
-        splitted_addresses=[span.string for span in span_list if 'itemprop' not in span.attrs or span['itemprop']!='streetAddress']
-        return '/'.join(splitted_addresses)
+        pysical_adress_tag=soup.find('div',class_='physical-address')
+        if pysical_adress_tag!=None:
+            span_list=pysical_adress_tag.find('div',itemprop='address').find_all('span')
+            splitted_addresses=[span.string.strip() for span in span_list if 'itemprop' not in span.attrs or span['itemprop']!='streetAddress']
+            return '/'.join(splitted_addresses)
+        else:
+            return ''
 
     def __contains__(self,key):
         return key in self.name
@@ -199,17 +200,25 @@ f.close()
 
 # HINT: Get a Python list of all the HTML BeautifulSoup instances that represent each park, for each state.
 
-
-
-
+collection=[[],[],[]]
+html_files=['arkansas_data.html','california_data.html','michigan_data.html']
+for i,html_file in enumerate(html_files):
+    with open(html_file,'r',encoding='utf-8') as h:
+        soup=BeautifulSoup(h.read(),'html.parser')
+        li_list=soup.find('ul',id='list_parks').find_all('li',recursive=False)
+        collection[i]=[NationalSite(li) for li in li_list]
+arkansas_natl_sites=collection[0]
+california_natl_sites=collection[1]
+michigan_natl_sites=collection[2]
 ##Code to help you test these out:
-# for p in california_natl_sites:
-# 	print(p)
-# for a in arkansas_natl_sites:
-# 	print(a)
-# for m in michigan_natl_sites:
-# 	print(m)
-
+"""
+for p in california_natl_sites:
+    print(p)
+for a in arkansas_natl_sites:
+    print(a)
+for m in michigan_natl_sites:
+    print(m)
+"""
 
 
 ######### PART 4 #########
@@ -217,7 +226,32 @@ f.close()
 ## Remember the hints / things you learned from Project 2 about writing CSV files from lists of objects!
 
 ## Note that running this step for ALL your data make take a minute or few to run
-# -- so it's a good idea to test any methods/functions you write with just a little bit of data, so running the program will take less time!
+# -- so it's a good idea to test any methods/functions you write with just a little bit of data,
+# so running the program will take less time!
 
-## Also remember that IF you have None values that may occur, you might run into some problems and have to debug for where you need to put in some None value / error handling!
-
+## Also remember that IF you have None values that may occur,
+# you might run into some problems and have to debug for where you need to put in some None value / error handling!
+csv_names=['arkansas.csv', 'california.csv', 'michigan.csv']
+for i,name in enumerate(csv_names):
+    with open(name,'w',newline='') as csv_file:
+        writer=csv.DictWriter(csv_file,
+                              fieldnames=['Name','Location','Type','Address','Description'],
+                              extrasaction='ignore',delimiter=',',quotechar='"')
+        writer.writeheader()
+        for j in range(len(collection[i])):
+            row={}
+            row['Name']=collection[i][j].name
+            row['Location']=collection[i][j].location
+            if row['Location']==None:
+                row['Location']=='None'
+            row['Type']=collection[i][j].type
+            if row['Type']==None:
+                row['Type']='None'
+            row['Address']=collection[i][j].get_mailing_address()
+            row['Description']=collection[i][j].description
+            try:
+                writer.writerow(row)
+            except:
+                row['Description']=collection[i][j].description.encode('utf-8')
+                writer.writerow(row)
+    
